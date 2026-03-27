@@ -1,5 +1,6 @@
 import type { ChatType } from "../channels/chat-type.js";
 import type { AgentDefaultsConfig } from "./types.agent-defaults.js";
+import type { AgentHierarchyConfig } from "./types.agent-hierarchy.js";
 import type { AgentModelConfig, AgentSandboxConfig } from "./types.agents-shared.js";
 import type { HumanDelayConfig, IdentityConfig } from "./types.base.js";
 import type { GroupChatConfig } from "./types.messages.js";
@@ -93,6 +94,8 @@ export type AgentConfig = {
   tools?: AgentToolsConfig;
   /** Optional runtime descriptor for this agent. */
   runtime?: AgentRuntimeConfig;
+  /** Optional hierarchy and permission configuration for this agent. */
+  hierarchy?: AgentHierarchyConfig;
 };
 
 export type AgentsConfig = {
