@@ -137,7 +137,7 @@ const createCompactionContext = (params: {
     model: undefined,
     sessionManager: params.sessionManager,
     modelRegistry: {
-      getApiKey: params.getApiKeyMock,
+      getApiKeyAndHeaders: params.getApiKeyMock,
     },
   }) as unknown as Partial<ExtensionContext>;
 
@@ -147,7 +147,9 @@ async function runCompactionScenario(params: {
   apiKey: string | null;
 }) {
   const compactionHandler = createCompactionHandler();
-  const getApiKeyMock = vi.fn().mockResolvedValue(params.apiKey ?? undefined);
+  const getApiKeyMock = vi
+    .fn()
+    .mockResolvedValue({ ok: true as const, apiKey: params.apiKey ?? undefined });
   const mockContext = createCompactionContext({
     sessionManager: params.sessionManager,
     getApiKeyMock,

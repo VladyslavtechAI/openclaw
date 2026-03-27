@@ -41,7 +41,7 @@ import {
 } from "./accounts.js";
 import { resolveTelegramAutoThreadId } from "./action-threading.js";
 import { buildTelegramExecApprovalButtons } from "./approval-buttons.js";
-import { auditTelegramGroupMembership, collectTelegramUnmentionedGroupIds } from "./audit.js";
+import * as telegramAudit from "./audit.js";
 import { buildTelegramGroupPeerId } from "./bot/helpers.js";
 import {
   listTelegramDirectoryGroupsFromConfig,
@@ -59,11 +59,12 @@ import {
   resolveTelegramGroupRequireMention,
   resolveTelegramGroupToolPolicy,
 } from "./group-policy.js";
-import { monitorTelegramProvider } from "./monitor.js";
+import * as telegramMonitor from "./monitor.js";
 import { looksLikeTelegramTargetId, normalizeTelegramMessagingTarget } from "./normalize.js";
 import { sendTelegramPayloadMessages } from "./outbound-adapter.js";
 import { parseTelegramReplyToMessageId, parseTelegramThreadId } from "./outbound-params.js";
-import { probeTelegram, type TelegramProbe } from "./probe.js";
+import * as telegramProbe from "./probe.js";
+import type { TelegramProbe } from "./probe.js";
 import { getTelegramRuntime } from "./runtime.js";
 import { sendTypingTelegram } from "./send.js";
 import { telegramSetupAdapter } from "./setup-core.js";
@@ -82,6 +83,33 @@ type TelegramSendFn = ReturnType<
 >["channel"]["telegram"]["sendMessageTelegram"];
 
 type TelegramSendOptions = NonNullable<Parameters<TelegramSendFn>[2]>;
+
+const telegramChannelDeps = {
+  probeTelegram: telegramProbe.probeTelegram,
+  collectTelegramUnmentionedGroupIds: telegramAudit.collectTelegramUnmentionedGroupIds,
+  auditTelegramGroupMembership: telegramAudit.auditTelegramGroupMembership,
+  monitorTelegramProvider: telegramMonitor.monitorTelegramProvider,
+};
+
+export const __testing = {
+  setDepsForTest(
+    overrides: Partial<{
+      probeTelegram: typeof telegramProbe.probeTelegram;
+      collectTelegramUnmentionedGroupIds: typeof telegramAudit.collectTelegramUnmentionedGroupIds;
+      auditTelegramGroupMembership: typeof telegramAudit.auditTelegramGroupMembership;
+      monitorTelegramProvider: typeof telegramMonitor.monitorTelegramProvider;
+    }> | null,
+  ) {
+    telegramChannelDeps.probeTelegram = overrides?.probeTelegram ?? telegramProbe.probeTelegram;
+    telegramChannelDeps.collectTelegramUnmentionedGroupIds =
+      overrides?.collectTelegramUnmentionedGroupIds ??
+      telegramAudit.collectTelegramUnmentionedGroupIds;
+    telegramChannelDeps.auditTelegramGroupMembership =
+      overrides?.auditTelegramGroupMembership ?? telegramAudit.auditTelegramGroupMembership;
+    telegramChannelDeps.monitorTelegramProvider =
+      overrides?.monitorTelegramProvider ?? telegramMonitor.monitorTelegramProvider;
+  },
+};
 
 function buildTelegramSendOptions(params: {
   cfg: OpenClawConfig;
@@ -443,7 +471,7 @@ export const telegramPlugin = createChatChannelPlugin({
       collectStatusIssues: collectTelegramStatusIssues,
       buildChannelSummary: ({ snapshot }) => buildTokenChannelStatusSummary(snapshot),
       probeAccount: async ({ account, timeoutMs }) =>
-        probeTelegram(account.token, timeoutMs, {
+        telegramChannelDeps.probeTelegram(account.token, timeoutMs, {
           accountId: account.accountId,
           proxyUrl: account.config.proxy,
           network: account.config.network,
@@ -478,7 +506,7 @@ export const telegramPlugin = createChatChannelPlugin({
           cfg.channels?.telegram?.accounts?.[account.accountId]?.groups ??
           cfg.channels?.telegram?.groups;
         const { groupIds, unresolvedGroups, hasWildcardUnmentionedGroups } =
-          collectTelegramUnmentionedGroupIds(groups);
+          telegramChannelDeps.collectTelegramUnmentionedGroupIds(groups);
         if (!groupIds.length && unresolvedGroups === 0 && !hasWildcardUnmentionedGroups) {
           return undefined;
         }
@@ -493,7 +521,7 @@ export const telegramPlugin = createChatChannelPlugin({
             elapsedMs: 0,
           };
         }
-        const audit = await auditTelegramGroupMembership({
+        const audit = await telegramChannelDeps.auditTelegramGroupMembership({
           token: account.token,
           botId,
           groupIds,
@@ -559,7 +587,7 @@ export const telegramPlugin = createChatChannelPlugin({
         const token = (account.token ?? "").trim();
         let telegramBotLabel = "";
         try {
-          const probe = await probeTelegram(token, 2500, {
+          const probe = await telegramChannelDeps.probeTelegram(token, 2500, {
             accountId: account.accountId,
             proxyUrl: account.config.proxy,
             network: account.config.network,
@@ -575,7 +603,7 @@ export const telegramPlugin = createChatChannelPlugin({
           }
         }
         ctx.log?.info(`[${account.accountId}] starting provider${telegramBotLabel}`);
-        return monitorTelegramProvider({
+        return telegramChannelDeps.monitorTelegramProvider({
           token,
           accountId: account.accountId,
           config: ctx.cfg,

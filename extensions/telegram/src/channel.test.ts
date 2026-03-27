@@ -1,44 +1,16 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../../src/config/config.js";
 import type { PluginApprovalRequest } from "../../../src/infra/plugin-approvals.js";
 import type { PluginRuntime } from "../../../src/plugins/runtime/types.js";
 import { createStartAccountContext } from "../../../test/helpers/extensions/start-account-context.js";
 import type { ResolvedTelegramAccount } from "./accounts.js";
-import * as auditModule from "./audit.js";
-import { telegramPlugin } from "./channel.js";
-import * as monitorModule from "./monitor.js";
-import * as probeModule from "./probe.js";
+import { __testing as telegramChannelTesting, telegramPlugin } from "./channel.js";
 import { setTelegramRuntime } from "./runtime.js";
 
 const probeTelegramMock = vi.hoisted(() => vi.fn());
 const collectTelegramUnmentionedGroupIdsMock = vi.hoisted(() => vi.fn());
 const auditTelegramGroupMembershipMock = vi.hoisted(() => vi.fn());
 const monitorTelegramProviderMock = vi.hoisted(() => vi.fn());
-
-vi.mock("./probe.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./probe.js")>();
-  return {
-    ...actual,
-    probeTelegram: probeTelegramMock,
-  };
-});
-
-vi.mock("./audit.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./audit.js")>();
-  return {
-    ...actual,
-    collectTelegramUnmentionedGroupIds: collectTelegramUnmentionedGroupIdsMock,
-    auditTelegramGroupMembership: auditTelegramGroupMembershipMock,
-  };
-});
-
-vi.mock("./monitor.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./monitor.js")>();
-  return {
-    ...actual,
-    monitorTelegramProvider: monitorTelegramProviderMock,
-  };
-});
 
 function createCfg(): OpenClawConfig {
   return {
@@ -80,41 +52,58 @@ function installTelegramRuntime(telegram?: Record<string, unknown>) {
 }
 
 function installGatewayRuntime(params?: { probeOk?: boolean; botUsername?: string }) {
-  const monitorTelegramProvider = vi
-    .spyOn(monitorModule, "monitorTelegramProvider")
-    .mockImplementation(async () => undefined);
-  const probeTelegram = vi
-    .spyOn(probeModule, "probeTelegram")
-    .mockImplementation(async () =>
-      params?.probeOk
-        ? { ok: true, bot: { username: params.botUsername ?? "bot" }, elapsedMs: 0 }
-        : { ok: false, elapsedMs: 0 },
-    );
-  const collectUnmentionedGroupIds = vi
-    .spyOn(auditModule, "collectTelegramUnmentionedGroupIds")
-    .mockImplementation(() => ({
-      groupIds: [] as string[],
-      unresolvedGroups: 0,
-      hasWildcardUnmentionedGroups: false,
-    }));
-  const auditGroupMembership = vi
-    .spyOn(auditModule, "auditTelegramGroupMembership")
-    .mockImplementation(async () => ({
-      ok: true,
-      checkedGroups: 0,
-      unresolvedGroups: 0,
-      hasWildcardUnmentionedGroups: false,
-      groups: [],
-      elapsedMs: 0,
-    }));
+  probeTelegramMock.mockImplementation(async () =>
+    params?.probeOk
+      ? { ok: true, bot: { username: params.botUsername ?? "bot" }, elapsedMs: 0 }
+      : { ok: false, elapsedMs: 0 },
+  );
+  collectTelegramUnmentionedGroupIdsMock.mockImplementation(() => ({
+    groupIds: [] as string[],
+    unresolvedGroups: 0,
+    hasWildcardUnmentionedGroups: false,
+  }));
+  auditTelegramGroupMembershipMock.mockImplementation(async () => ({
+    ok: true,
+    checkedGroups: 0,
+    unresolvedGroups: 0,
+    hasWildcardUnmentionedGroups: false,
+    groups: [],
+    elapsedMs: 0,
+  }));
+  monitorTelegramProviderMock.mockImplementation(async () => undefined);
+  telegramChannelTesting.setDepsForTest({
+    probeTelegram: probeTelegramMock as typeof import("./probe.js").probeTelegram,
+    collectTelegramUnmentionedGroupIds:
+      collectTelegramUnmentionedGroupIdsMock as typeof import("./audit.js").collectTelegramUnmentionedGroupIds,
+    auditTelegramGroupMembership:
+      auditTelegramGroupMembershipMock as typeof import("./audit.js").auditTelegramGroupMembership,
+    monitorTelegramProvider:
+      monitorTelegramProviderMock as typeof import("./monitor.js").monitorTelegramProvider,
+  });
   installTelegramRuntime();
   return {
-    monitorTelegramProvider,
-    probeTelegram,
-    collectUnmentionedGroupIds,
-    auditGroupMembership,
+    monitorTelegramProvider: monitorTelegramProviderMock,
+    probeTelegram: probeTelegramMock,
+    collectUnmentionedGroupIds: collectTelegramUnmentionedGroupIdsMock,
+    auditGroupMembership: auditTelegramGroupMembershipMock,
   };
 }
+
+beforeEach(() => {
+  probeTelegramMock.mockReset();
+  collectTelegramUnmentionedGroupIdsMock.mockReset();
+  auditTelegramGroupMembershipMock.mockReset();
+  monitorTelegramProviderMock.mockReset();
+  telegramChannelTesting.setDepsForTest({
+    probeTelegram: probeTelegramMock as typeof import("./probe.js").probeTelegram,
+    collectTelegramUnmentionedGroupIds:
+      collectTelegramUnmentionedGroupIdsMock as typeof import("./audit.js").collectTelegramUnmentionedGroupIds,
+    auditTelegramGroupMembership:
+      auditTelegramGroupMembershipMock as typeof import("./audit.js").auditTelegramGroupMembership,
+    monitorTelegramProvider:
+      monitorTelegramProviderMock as typeof import("./monitor.js").monitorTelegramProvider,
+  });
+});
 
 function configureOpsProxyNetwork(cfg: OpenClawConfig) {
   cfg.channels!.telegram!.accounts!.ops = {
@@ -166,6 +155,7 @@ function createPluginApprovalRequest(
 }
 
 afterEach(() => {
+  telegramChannelTesting.setDepsForTest(null);
   vi.restoreAllMocks();
 });
 
