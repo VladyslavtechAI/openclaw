@@ -7,13 +7,23 @@ import fs from "node:fs";
 import path from "node:path";
 
 export type AuditEventType =
-  | "tool.exec" | "tool.read" | "tool.write" | "tool.web_fetch"
-  | "message.send" | "message.receive"
-  | "auth.login" | "auth.failure"
-  | "policy.deny" | "policy.warn"
-  | "session.create" | "session.destroy"
-  | "config.change" | "skill.install"
-  | "security.injection_detected" | "security.exfil_blocked" | "security.backdoor_found";
+  | "tool.exec"
+  | "tool.read"
+  | "tool.write"
+  | "tool.web_fetch"
+  | "message.send"
+  | "message.receive"
+  | "auth.login"
+  | "auth.failure"
+  | "policy.deny"
+  | "policy.warn"
+  | "session.create"
+  | "session.destroy"
+  | "config.change"
+  | "skill.install"
+  | "security.injection_detected"
+  | "security.exfil_blocked"
+  | "security.backdoor_found";
 
 export type AuditEvent = {
   timestamp: number;
@@ -41,8 +51,14 @@ const SECRET_PATTERNS = [
   { pattern: /ghp_[A-Za-z0-9]{36}/g, replacement: "[REDACTED:github_token]" },
   { pattern: /AIzaSy[A-Za-z0-9_-]{33}/g, replacement: "[REDACTED:google_key]" },
   { pattern: /AKIA[A-Z0-9]{16}/g, replacement: "[REDACTED:aws_key]" },
-  { pattern: /-----BEGIN\s+(?:RSA\s+|EC\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END/g, replacement: "[REDACTED:private_key]" },
-  { pattern: /(password|passwd|secret|token)\s*[:=]\s*['"][^'"]{8,}['"]/gi, replacement: "$1=[REDACTED]" },
+  {
+    pattern: /-----BEGIN\s+(?:RSA\s+|EC\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END/g,
+    replacement: "[REDACTED:private_key]",
+  },
+  {
+    pattern: /(password|passwd|secret|token)\s*[:=]\s*['"][^'"]{8,}['"]/gi,
+    replacement: "$1=[REDACTED]",
+  },
 ];
 
 /**
@@ -98,7 +114,9 @@ export class AuditLogger {
    */
   verifyChain(date?: Date): { valid: boolean; brokenAt?: number; totalRecords: number } {
     const records = this.readRecords(date);
-    if (records.length === 0) return { valid: true, totalRecords: 0 };
+    if (records.length === 0) {
+      return { valid: true, totalRecords: 0 };
+    }
 
     let prevHash = records[0].prevHash;
     for (let i = 0; i < records.length; i++) {
@@ -135,7 +153,7 @@ export class AuditLogger {
       records = records.filter((r) => r.type === filter.type);
     }
     if (filter.since) {
-      records = records.filter((r) => r.timestamp >= filter.since);
+      records = records.filter((r) => r.timestamp >= filter.since!);
     }
     if (filter.limit) {
       records = records.slice(-filter.limit);
@@ -174,12 +192,19 @@ export class AuditLogger {
 
   private readRecords(date?: Date): AuditRecord[] {
     const filePath = this.getLogFilePath(date);
-    if (!fs.existsSync(filePath)) return [];
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
     try {
-      return fs.readFileSync(filePath, "utf-8")
-        .trim().split("\n").filter(Boolean)
+      return fs
+        .readFileSync(filePath, "utf-8")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
         .map((line) => JSON.parse(line) as AuditRecord);
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   private getLogFilePath(date?: Date): string {
