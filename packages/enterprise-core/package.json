@@ -1,0 +1,49 @@
+{
+  "name": "@openclaw-enterprise/core",
+  "version": "1.0.0",
+  "description": "Enterprise Integration Layer for OpenClaw — security, compliance, and infrastructure modules",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./plugin": {
+      "import": "./dist/plugin/OpenClawEnterprisePlugin.js",
+      "types": "./dist/plugin/OpenClawEnterprisePlugin.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/middleware/index.js",
+      "types": "./dist/middleware/index.d.ts"
+    }
+  },
+  "bin": {
+    "openclaw-enterprise": "./dist/cli/enterprise.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "openclaw",
+    "enterprise",
+    "security",
+    "compliance",
+    "ai-safety"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
