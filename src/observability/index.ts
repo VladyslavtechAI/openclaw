@@ -41,3 +41,45 @@ export {
   type DashboardDeps,
   type DashboardConfig,
 } from "./dashboard-api.js";
+
+export {
+  InterventionDetector,
+  type InterventionType,
+  type InterventionEvent,
+  type InterventionAlert,
+  type InterventionDetectorConfig,
+} from "./intervention-detector.js";
+
+export {
+  ConfigGuardian,
+  type ConfigChangeEvent,
+  type ConfigValidationResult,
+  type ConfigGuardianAlert,
+  type ConfigGuardianConfig,
+} from "./config-guardian.js";
+
+export {
+  HealthChecker,
+  type RestartEvent,
+  type ErrorEvent,
+  type HealthAlert,
+  type HealthStatus,
+  type HealthCheckerConfig,
+} from "./health-checker.js";
+
+export {
+  AuthValidator,
+  type AuthValidationResult,
+  type AuthFileSet,
+  type EnvValidationResult,
+} from "./auth-validator.js";
+
+export {
+  ResourceMonitor,
+  type MachineResources,
+  type BackupStatus,
+  type ResourceAlert,
+  type ResourceAlertSeverity,
+  type ResourceThresholds,
+  type ResourceMonitorConfig,
+} from "./resource-monitor.js";
