@@ -83,3 +83,33 @@ export {
   type ResourceThresholds,
   type ResourceMonitorConfig,
 } from "./resource-monitor.js";
+
+export {
+  AutoFixer,
+  type FixRule,
+  type FixResult,
+  type FixRecord,
+  type FixPattern,
+  type FixPatternType,
+  type FixAction,
+  type FixActionType,
+  type MachineCheck,
+  type AutoFixerConfig,
+} from "./auto-fixer.js";
+
+export {
+  ErrorKnowledgeBase,
+  type KnownError,
+  type ErrorOccurrence,
+  type ErrorKnowledgeBaseConfig,
+} from "./error-knowledge-base.js";
+
+export {
+  LogAggregator,
+  type LogEntry,
+  type StoredLogEntry,
+  type LogFilter,
+  type LogLevel,
+  type ErrorSummary,
+  type LogAggregatorConfig,
+} from "./log-aggregator.js";
